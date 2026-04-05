@@ -4,6 +4,8 @@
 
 One HTML file. No install. No dependencies. No server. Open it in a browser, pick a folder, and download a consolidated snapshot of your codebase — formatted for pasting straight into an LLM's context window.
 
+**[Use it now →](https://johnsalchichongh.github.io/consolidate/)**
+
 ---
 
 ## Why
@@ -59,14 +61,21 @@ Consolidate does this in seconds: scan a folder, pick the files you want, downlo
 
 ## Getting started
 
+**Option A — Use online (no download needed):**
+1. Go to **[johnsalchichongh.github.io/consolidate](https://johnsalchichongh.github.io/consolidate/)**
+2. Pick a folder, select your files, download.
+
+**Option B — Use locally:**
 1. **Download** `consolidate.html` (it's the only file you need).
 2. **Open** it in any modern browser (Chrome, Firefox, Edge, Safari).
+
+Then:
 3. **Click** the drop zone or drag a project folder onto it.
 4. **Select** the files you want using the tree, search, and filters.
 5. **Choose** your output format and options in the header.
 6. **Download** — click the download button to get your consolidated file.
 
-That's it.
+That's it. Both options are 100% local — your code never leaves your browser.
 
 ---
 
@@ -205,7 +214,7 @@ Click any file in the sidebar tree to view its contents in the right panel. This
 ## FAQ
 
 **Does this upload my code anywhere?**
-No. Everything runs locally in your browser. No network requests are made. You can verify this by opening DevTools → Network tab while using the tool.
+No. Everything runs locally in your browser — both the hosted version on GitHub Pages and the downloaded HTML file. The page is static with zero backend. No network requests are made after the initial page load. You can verify this by opening DevTools → Network tab while using the tool.
 
 **Can I use this with private/proprietary code?**
 Yes. Your code never leaves your machine. The HTML file doesn't even load external resources beyond two Google Fonts (which can be removed for fully air-gapped use).
