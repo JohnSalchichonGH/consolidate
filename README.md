@@ -70,6 +70,7 @@ Consolidate does this in seconds: scan a folder, pick the files you want, downlo
 2. **Open** it in any modern browser (Chrome, Firefox, Edge, Safari).
 
 Then:
+
 3. **Click** the drop zone or drag a project folder onto it.
 4. **Select** the files you want using the tree, search, and filters.
 5. **Choose** your output format and options in the header.
