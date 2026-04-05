@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consolidate — Project File Merger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg-0: #0a0a0c;
+    --bg-1: #111114;
+    --bg-2: #1a1a1f;
+    --bg-3: #222228;
+    --bg-4: #2a2a32;
+    --border: #2e2e38;
+    --border-active: #4a4a58;
+    --text-0: #e8e8ed;
+    --text-1: #b0b0bc;
+    --text-2: #707080;
+    --accent: #6c9eff;
+    --accent-dim: #4a7ae0;
+    --accent-bg: rgba(108,158,255,0.08);
+    --green: #5ccf7f;
+    --green-bg: rgba(92,207,127,0.10);
+    --orange: #e09a5c;
+    --orange-bg: rgba(224,154,92,0.10);
+    --red: #e06c6c;
+    --red-bg: rgba(224,108,108,0.1);
+    --radius: 6px;
+    --radius-lg: 10px;
+    --mono: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+    --sans: 'DM Sans', -apple-system, sans-serif;
+    --transition: 150ms ease;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg-0);
+    color: var(--text-0);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── Layout ───────────────────────────────────── */
+  #app {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-1);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+  }
+
+  .logo-icon {
+    width: 26px;
+    height: 26px;
+    background: var(--accent);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #000;
+    font-weight: 700;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .main-area {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-1);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-2);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* ── Buttons ──────────────────────────────────── */
+  button, select {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    padding: 6px 12px;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: var(--accent-dim); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: var(--bg-3);
+    color: var(--text-1);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-4);
+    border-color: var(--border-active);
+    color: var(--text-0);
+  }
+
+  .btn-danger {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid transparent;
+  }
+  .btn-danger:hover { border-color: var(--red); }
+
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+
+  select.format-select {
+    background: var(--bg-3);
+    color: var(--text-0);
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23707080' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 24px;
+    cursor: pointer;
+  }
+  select.format-select:hover { border-color: var(--border-active); }
+
+  /* ── Toggle ───────────────────────────────────── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-1);
+    font-family: var(--mono);
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 0;
+  }
+
+  .toggle-track {
+    width: 28px;
+    height: 16px;
+    border-radius: 8px;
+    background: var(--bg-4);
+    border: 1px solid var(--border);
+    position: relative;
+    transition: all var(--transition);
+    flex-shrink: 0;
+  }
+  .toggle-track.on {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-2);
+    top: 2px;
+    left: 2px;
+    transition: all var(--transition);
+  }
+  .toggle-track.on::after {
+    left: 14px;
+    background: #000;
+  }
+
+  /* ── Sidebar ──────────────────────────────────── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: var(--bg-1);
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .sidebar-toolbar {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 10px;
+    transition: border-color var(--transition);
+  }
+  .search-box:focus-within { border-color: var(--accent); }
+  .search-box svg { flex-shrink: 0; color: var(--text-2); }
+  .search-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-0);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 0;
+    outline: none;
+    min-width: 0;
+  }
+  .search-box input::placeholder { color: var(--text-2); }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 99px;
+    background: var(--bg-3);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition);
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--border-active); color: var(--text-1); }
+  .chip.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .chip .count { margin-left: 3px; opacity: 0.6; }
+
+  .tree-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 6px 0;
+  }
+
+  .tree-container::-webkit-scrollbar { width: 5px; }
+  .tree-container::-webkit-scrollbar-track { background: transparent; }
+  .tree-container::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 3px; }
+
+  .tree-item {
+    display: flex;
+    align-items: center;
+    padding: 2px 12px 2px calc(12px + var(--depth, 0) * 18px);
+    gap: 4px;
+    cursor: pointer;
+    transition: background var(--transition);
+    min-height: 28px;
+    user-select: none;
+  }
+  .tree-item:hover { background: var(--bg-2); }
+  .tree-item.selected { background: var(--accent-bg); }
+
+  .tree-arrow {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-2);
+    transition: transform var(--transition);
+  }
+  .tree-arrow.expanded { transform: rotate(90deg); }
+  .tree-arrow.hidden { visibility: hidden; }
+
+  .tree-check {
+    width: 15px; height: 15px;
+    border: 1.5px solid var(--border-active);
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--transition);
+    margin-right: 2px;
+  }
+  .tree-check.checked { background: var(--accent); border-color: var(--accent); }
+  .tree-check.partial { border-color: var(--accent); background: var(--accent-bg); }
+  .tree-check.checked svg { color: #000; }
+  .tree-check.partial svg { color: var(--accent); }
+
+  .tree-icon { font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+
+  .tree-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .tree-name.folder { color: var(--accent); font-weight: 500; }
+
+  .tree-size {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-2);
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 8px;
+  }
+
+  /* ── Content Area ─────────────────────────────── */
+  .content-area {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    background: var(--bg-0);
+  }
+
+  .content-header {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-1);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+
+  .content-body {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+    min-height: 0;
+  }
+
+  .content-body::-webkit-scrollbar { width: 5px; }
+  .content-body::-webkit-scrollbar-track { background: transparent; }
+  .content-body::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 3px; }
+
+  pre.file-preview {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--text-1);
+    white-space: pre-wrap;
+    word-break: break-all;
+    tab-size: 4;
+    margin: 0;
+  }
+
+  /* ── Empty / Upload State ─────────────────────── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    color: var(--text-2);
+    text-align: center;
+    padding: 40px;
+  }
+
+  .drop-zone {
+    width: 100%;
+    max-width: 480px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    padding: 60px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    transition: all var(--transition);
+    cursor: pointer;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+
+  .drop-zone-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--bg-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+
+  .drop-zone h2 {
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-0);
+  }
+
+  .drop-zone p {
+    font-size: 13px;
+    color: var(--text-2);
+    max-width: 320px;
+    line-height: 1.6;
+  }
+
+  .drop-zone .shortcut {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--bg-3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--text-2);
+  }
+
+  /* ── Output settings panel ────────────────────── */
+  .output-settings {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .setting-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .setting-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .token-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+  }
+  .token-badge.low { color: var(--green); background: var(--green-bg); border-color: rgba(92,207,127,0.25); }
+  .token-badge.mid { color: var(--orange); background: var(--orange-bg); border-color: rgba(224,154,92,0.25); }
+  .token-badge.high { color: var(--red); background: var(--red-bg); border-color: rgba(224,108,108,0.25); }
+
+  /* ── Selection toolbar ────────────────────────── */
+  .selection-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .selection-bar .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  /* ── Progress ─────────────────────────────────── */
+  .progress-bar {
+    height: 2px;
+    background: var(--bg-3);
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+  }
+  .progress-bar .fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--accent);
+    transition: width 100ms ease;
+  }
+
+  /* ── Responsive ───────────────────────────────── */
+  @media (max-width: 768px) {
+    .main-area { grid-template-columns: 1fr; }
+    .content-area { display: none; }
+    .output-settings { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">{}</div>
+      <span>consolidate</span>
+    </div>
+    <div class="header-actions" id="headerActions"></div>
+  </header>
+
+  <div class="main-area" id="mainArea"></div>
+
+  <footer>
+    <span id="footerLeft">No files loaded</span>
+    <span id="footerRight">consolidate v1.0 · 100% local</span>
+  </footer>
+</div>
+
+<input type="file" id="folderInput" webkitdirectory multiple hidden>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+
+const S = {
+  files: [],
+  tree: null,
+  selected: new Set(),
+  expanded: new Set(),
+  search: '',
+  extFilter: new Set(),
+  previewPath: null,
+  loading: false,
+  folderName: '',      // uploaded folder name
+  // Output options
+  format: 'xml',       // xml | markdown
+  includeTree: true,
+  includeIndex: true,
+};
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const BINARY_PROBE = 8192;
+const MAX_FILE_MB = 15;
+const CHARS_PER_TOKEN = 4; // rough estimate for code
+
+// Folders deselected by default (still visible in tree, user can opt in)
+const AUTO_DESELECT = new Set([
+  '.git', 'node_modules', '__pycache__', '.venv', 'venv', 'env',
+  '.idea', '.vscode', 'dist', 'build', '.cache', '.mypy_cache',
+  '.pytest_cache', 'target', 'bin', 'obj', 'coverage', '.terraform',
+  '.next', '.nuxt', '.svelte-kit', '.parcel-cache', 'vendor',
+]);
+
+const LANG_MAP = {
+  '.py':'python','.js':'javascript','.mjs':'javascript','.jsx':'jsx',
+  '.ts':'typescript','.tsx':'tsx','.java':'java','.cs':'csharp',
+  '.c':'c','.h':'c','.cpp':'cpp','.hpp':'cpp','.go':'go','.rs':'rust',
+  '.rb':'ruby','.php':'php','.swift':'swift','.kt':'kotlin',
+  '.sh':'bash','.bash':'bash','.zsh':'zsh','.ps1':'powershell',
+  '.sql':'sql','.html':'html','.htm':'html','.css':'css','.scss':'scss',
+  '.sass':'sass','.less':'less','.vue':'vue','.svelte':'svelte',
+  '.json':'json','.yaml':'yaml','.yml':'yaml','.toml':'toml',
+  '.xml':'xml','.ini':'ini','.cfg':'ini','.tf':'hcl',
+  '.md':'markdown','.graphql':'graphql','.proto':'protobuf',
+  '.tex':'latex','.rst':'rst','.r':'r','.lua':'lua','.dart':'dart',
+  '.scala':'scala','.bat':'batch','.cmd':'batch',
+};
+
+const FNAME_LANG = {
+  'dockerfile':'dockerfile','makefile':'makefile',
+  '.gitignore':'gitignore','.dockerignore':'dockerignore',
+  '.env':'bash','.editorconfig':'ini','jenkinsfile':'groovy','vagrantfile':'ruby',
+};
+
+const EXT_ICONS = {
+  '.py':'🐍','.js':'📜','.ts':'📘','.jsx':'⚛️','.tsx':'⚛️',
+  '.java':'☕','.go':'🐹','.rs':'🦀','.rb':'💎','.php':'🐘',
+  '.html':'🌐','.css':'🎨','.json':'📋','.md':'📝','.txt':'📄',
+  '.yml':'⚙️','.yaml':'⚙️','.sh':'⚡','.sql':'🗄️','.xml':'📰',
+  '.c':'🔧','.cpp':'🔧','.h':'🔧','.cs':'#️⃣','.swift':'🐦',
+  '.kt':'🟣','.dart':'🎯','.lua':'🌙','.r':'📊','.scala':'🔴',
+  '.toml':'⚙️','.ini':'⚙️','.cfg':'⚙️','.tf':'🏗️',
+  '.vue':'💚','.svelte':'🧡','.scss':'🎨','.sass':'🎨','.less':'🎨',
+  '.graphql':'◇','.proto':'◈',
+};
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function getExt(name) {
+  const i = name.lastIndexOf('.');
+  return i > 0 ? name.slice(i).toLowerCase() : '';
+}
+function getIcon(name) {
+  const l = name.toLowerCase();
+  if (l === 'dockerfile') return '🐳';
+  if (l === 'makefile') return '🔨';
+  if (l.startsWith('.git')) return '🚫';
+  if (l.startsWith('.env')) return '⚙️';
+  return EXT_ICONS[getExt(name)] || '📄';
+}
+function getLang(name) {
+  return FNAME_LANG[name.toLowerCase()] || LANG_MAP[getExt(name)] || '';
+}
+function fmtSize(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
+}
+function fmtTokens(n) {
+  if (n < 1000) return n + '';
+  return (n/1000).toFixed(1) + 'K';
+}
+function isBinary(buffer) {
+  const view = new Uint8Array(buffer.slice(0, BINARY_PROBE));
+  for (let i = 0; i < view.length; i++) { if (view[i] === 0) return true; }
+  return false;
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escA(s) {
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+function estimateTokens(files) {
+  let chars = 0;
+  for (const f of files) chars += f.content.length + f.path.length + 30; // overhead per file
+  return Math.ceil(chars / CHARS_PER_TOKEN);
+}
+function tokenClass(t) {
+  if (t < 30000) return 'low';
+  if (t < 80000) return 'mid';
+  return 'high';
+}
+
+// ── Tree ───────────────────────────────────────────────────────────────────
+
+function buildTree(files) {
+  const root = { name: '', children: {}, files: [] };
+  for (const file of files) {
+    const parts = file.path.split('/');
+    let node = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dir = parts[i];
+      if (!node.children[dir])
+        node.children[dir] = { name: dir, children: {}, files: [], path: parts.slice(0,i+1).join('/') };
+      node = node.children[dir];
+    }
+    node.files.push(file);
+  }
+  return root;
+}
+
+function getAllFilePaths(node) {
+  let p = node.files.map(f => f.path);
+  for (const c of Object.values(node.children)) p = p.concat(getAllFilePaths(c));
+  return p;
+}
+
+function findNode(node, path) {
+  for (const c of Object.values(node.children)) {
+    if (c.path === path) return c;
+    const f = findNode(c, path);
+    if (f) return f;
+  }
+  return null;
+}
+
+// Build a plain-text directory tree string
+function buildTreeString(files) {
+  const root = {};
+  for (const f of files) {
+    const parts = f.path.split('/');
+    let node = root;
+    for (const part of parts) {
+      if (!node[part]) node[part] = {};
+      node = node[part];
+    }
+  }
+
+  const lines = [];
+  function walk(obj, depth) {
+    const keys = Object.keys(obj).sort((a,b) => {
+      const aDir = Object.keys(obj[a]).length > 0;
+      const bDir = Object.keys(obj[b]).length > 0;
+      if (aDir !== bDir) return aDir ? -1 : 1;
+      return a.localeCompare(b);
+    });
+    for (const key of keys) {
+      const children = Object.keys(obj[key]);
+      const isDir = children.length > 0;
+      lines.push('  '.repeat(depth) + key + (isDir ? '/' : ''));
+      if (isDir) walk(obj[key], depth + 1);
+    }
+  }
+  walk(root, 0);
+  return lines.join('\n');
+}
+
+// ── File reading ───────────────────────────────────────────────────────────
+
+async function readFiles(fileList) {
+  S.loading = true;
+  S.files = [];
+  S.selected.clear();
+  S.expanded.clear();
+  S.extFilter.clear();
+  S.previewPath = null;
+  S.search = '';
+  render();
+
+  const files = Array.from(fileList);
+  const total = files.length;
+  let processed = 0;
+  const results = [];
+
+  let paths = files.map(f => f.webkitRelativePath || f.name);
+  const prefix = paths.length > 0 ? paths[0].split('/')[0] + '/' : '';
+  S.folderName = prefix ? prefix.slice(0, -1) : '';
+
+  for (const file of files) {
+    processed++;
+    if (processed % 50 === 0 || processed === total) {
+      updateProgress(processed / total, `Reading files… ${processed}/${total}`);
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    const rawPath = file.webkitRelativePath || file.name;
+    const path = prefix ? rawPath.slice(prefix.length) : rawPath;
+    if (!path) continue;
+    if (file.size > MAX_FILE_MB * 1048576 || file.size === 0) continue;
+
+    try {
+      const buffer = await file.arrayBuffer();
+      if (isBinary(buffer)) continue;
+      const content = new TextDecoder('utf-8', { fatal: false }).decode(buffer);
+      results.push({ path, name: file.name, ext: getExt(file.name), size: file.size, content });
+    } catch (e) { /* skip */ }
+  }
+
+  results.sort((a, b) => a.path.localeCompare(b.path));
+  S.files = results;
+  S.tree = buildTree(results);
+  S.selected = new Set(
+    results
+      .filter(f => !f.path.split('/').some(part => AUTO_DESELECT.has(part)))
+      .map(f => f.path)
+  );
+
+  function expandLevel(node, d) {
+    if (d > 1) return;
+    for (const c of Object.values(node.children)) {
+      S.expanded.add(c.path);
+      expandLevel(c, d + 1);
+    }
+  }
+  expandLevel(S.tree, 0);
+
+  S.loading = false;
+  render();
+}
+
+function updateProgress(pct, text) {
+  const bar = document.getElementById('progressFill');
+  const label = document.getElementById('progressLabel');
+  if (bar) bar.style.width = (pct * 100) + '%';
+  if (label) label.textContent = text;
+}
+
+// ── Filtering ──────────────────────────────────────────────────────────────
+
+function isFileVisible(f) {
+  if (S.extFilter.size > 0 && !S.extFilter.has(f.ext)) return false;
+  if (S.search && !f.path.toLowerCase().includes(S.search.toLowerCase())) return false;
+  return true;
+}
+function getSelected() {
+  return S.files.filter(f => S.selected.has(f.path) && isFileVisible(f));
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+
+function render() {
+  renderHeader();
+  renderMain();
+  renderFooter();
+}
+
+function renderHeader() {
+  const el = document.getElementById('headerActions');
+  if (S.files.length === 0) { el.innerHTML = ''; return; }
+
+  const sel = getSelected();
+  const tokens = estimateTokens(sel);
+
+  el.innerHTML = `
+    <div class="output-settings">
+      <div class="setting-group">
+        <span class="setting-label">Format</span>
+        <select class="format-select" onchange="S.format=this.value;render()">
+          <option value="xml" ${S.format==='xml'?'selected':''}>XML (LLM-optimized)</option>
+          <option value="markdown" ${S.format==='markdown'?'selected':''}>Markdown</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label class="toggle-row" onclick="S.includeTree=!S.includeTree;render()">
+          <div class="toggle-track ${S.includeTree?'on':''}"></div>
+          Tree
+        </label>
+      </div>
+      <div class="setting-group">
+        <label class="toggle-row" onclick="S.includeIndex=!S.includeIndex;render()">
+          <div class="toggle-track ${S.includeIndex?'on':''}"></div>
+          Index
+        </label>
+      </div>
+      <span class="token-badge ${tokenClass(tokens)}">~${fmtTokens(tokens)} tokens</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-ghost btn-sm" onclick="document.getElementById('folderInput').click()">Change folder</button>
+      <button class="btn-danger btn-sm" onclick="resetAll()">Clear</button>
+      <button class="btn-primary" onclick="generate()" ${sel.length===0?'disabled':''}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download ${sel.length} files
+      </button>
+    </div>
+  `;
+}
+
+function renderMain() {
+  const main = document.getElementById('mainArea');
+
+  if (S.loading) {
+    main.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="drop-zone" style="border-style:solid;border-color:var(--accent);pointer-events:none">
+          <div class="drop-zone-icon">⏳</div>
+          <h2 id="progressLabel">Reading files…</h2>
+          <div class="progress-bar" style="width:100%;max-width:300px;border-radius:2px">
+            <div class="fill" id="progressFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (S.files.length === 0) {
+    main.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('folderInput').click()">
+          <div class="drop-zone-icon">📂</div>
+          <h2>Open a project folder</h2>
+          <p>Select a folder to scan all source files. Binary and oversized files are automatically skipped.</p>
+          <span class="shortcut">click or drag &amp; drop</span>
+        </div>
+      </div>`;
+    setupDropZone();
+    return;
+  }
+
+  // Extension counts
+  const extCounts = {};
+  for (const f of S.files) { const e = f.ext || '(none)'; extCounts[e] = (extCounts[e]||0) + 1; }
+  const sortedExts = Object.entries(extCounts).sort((a,b) => b[1] - a[1]);
+
+  let sidebar = `
+    <div class="sidebar">
+      <div class="sidebar-toolbar">
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Filter files…" value="${esc(S.search)}" oninput="onSearch(this.value)">
+        </div>
+        <div class="filter-chips">
+          ${sortedExts.slice(0,20).map(([ext,count]) => `
+            <span class="chip ${S.extFilter.has(ext)?'active':''}"
+                  onclick="toggleExt('${esc(ext)}')">${esc(ext)}<span class="count">${count}</span></span>
+          `).join('')}
+        </div>
+      </div>
+      <div class="selection-bar">
+        <button class="btn-ghost btn-sm" onclick="selectAll()">All</button>
+        <button class="btn-ghost btn-sm" onclick="selectNone()">None</button>
+        <button class="btn-ghost btn-sm" onclick="invertSelection()">Invert</button>
+        <span class="label" style="margin-left:auto">${S.selected.size}/${S.files.length}</span>
+      </div>
+      <div class="tree-container" id="treeContainer">
+        ${renderTreeNode(S.tree, 0)}
+      </div>
+    </div>`;
+
+  let content = '';
+  if (S.previewPath) {
+    const file = S.files.find(f => f.path === S.previewPath);
+    if (file) {
+      content = `
+        <div class="content-area">
+          <div class="content-header">
+            <span>${esc(file.path)}</span>
+            <span>${fmtSize(file.size)} · ${getLang(file.name) || file.ext || 'text'}</span>
+          </div>
+          <div class="content-body">
+            <pre class="file-preview">${esc(file.content)}</pre>
+          </div>
+        </div>`;
+    }
+  }
+
+  if (!content) {
+    const sel = getSelected();
+    const totalSize = sel.reduce((s,f) => s + f.size, 0);
+    content = `
+      <div class="content-area">
+        <div class="empty-state">
+          <p style="font-size:14px;color:var(--text-1)">${sel.length} files selected · ${fmtSize(totalSize)}</p>
+          <p>Click a file to preview its content</p>
+        </div>
+      </div>`;
+  }
+
+  main.innerHTML = sidebar + content;
+}
+
+function renderTreeNode(node, depth) {
+  let html = '';
+  const folders = Object.values(node.children).sort((a,b) => a.name.localeCompare(b.name));
+  const files = node.files.filter(f => isFileVisible(f)).sort((a,b) => a.name.localeCompare(b.name));
+
+  for (const folder of folders) {
+    const isExp = S.expanded.has(folder.path);
+    const allPaths = getAllFilePaths(folder).filter(p => {
+      const f = S.files.find(fi => fi.path === p);
+      return f && isFileVisible(f);
+    });
+    if (allPaths.length === 0) continue;
+
+    const checked = allPaths.filter(p => S.selected.has(p)).length;
+    const cs = checked === 0 ? '' : checked === allPaths.length ? 'checked' : 'partial';
+
+    html += `
+      <div class="tree-item" style="--depth:${depth}" onclick="toggleFolder('${escA(folder.path)}')">
+        <div class="tree-arrow ${isExp?'expanded':''}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5l8 7-8 7z"/></svg>
+        </div>
+        <div class="tree-check ${cs}" onclick="event.stopPropagation();toggleFolderCheck('${escA(folder.path)}')">
+          ${cs==='checked'?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+          ${cs==='partial'?'<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>':''}
+        </div>
+        <span class="tree-icon">📁</span>
+        <span class="tree-name folder">${esc(folder.name)}/</span>
+        <span class="tree-size">${allPaths.length}</span>
+      </div>`;
+    if (isExp) html += renderTreeNode(folder, depth + 1);
+  }
+
+  for (const file of files) {
+    const chk = S.selected.has(file.path);
+    const sel = S.previewPath === file.path;
+    html += `
+      <div class="tree-item ${sel?'selected':''}" style="--depth:${depth}" onclick="previewFile('${escA(file.path)}')">
+        <div class="tree-arrow hidden"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M0 0"/></svg></div>
+        <div class="tree-check ${chk?'checked':''}" onclick="event.stopPropagation();toggleFileCheck('${escA(file.path)}')">
+          ${chk?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+        </div>
+        <span class="tree-icon">${getIcon(file.name)}</span>
+        <span class="tree-name">${esc(file.name)}</span>
+        <span class="tree-size">${fmtSize(file.size)}</span>
+      </div>`;
+  }
+  return html;
+}
+
+function renderFooter() {
+  const left = document.getElementById('footerLeft');
+  if (S.files.length === 0) {
+    left.textContent = 'No files loaded';
+  } else {
+    const sel = getSelected();
+    const total = sel.reduce((s,f) => s + f.size, 0);
+    left.textContent = `${sel.length} selected · ${fmtSize(total)} · ${S.files.length} total`;
+  }
+}
+
+// ── Interactions ───────────────────────────────────────────────────────────
+
+function toggleFolder(p) { S.expanded.has(p)?S.expanded.delete(p):S.expanded.add(p); render(); }
+
+function toggleFolderCheck(p) {
+  const node = findNode(S.tree, p);
+  if (!node) return;
+  const all = getAllFilePaths(node).filter(p => { const f=S.files.find(fi=>fi.path===p); return f&&isFileVisible(f); });
+  const allChk = all.every(p => S.selected.has(p));
+  for (const x of all) { allChk ? S.selected.delete(x) : S.selected.add(x); }
+  render();
+}
+
+function toggleFileCheck(p) { S.selected.has(p)?S.selected.delete(p):S.selected.add(p); render(); }
+
+function previewFile(p) { S.previewPath = S.previewPath===p ? null : p; render(); }
+
+function toggleExt(ext) { S.extFilter.has(ext)?S.extFilter.delete(ext):S.extFilter.add(ext); render(); }
+
+function onSearch(v) {
+  S.search = v;
+  render();
+  const input = document.getElementById('searchInput');
+  if (input) { input.focus(); input.selectionStart = input.selectionEnd = v.length; }
+}
+
+function selectAll() { for (const f of S.files) { if (isFileVisible(f)) S.selected.add(f.path); } render(); }
+function selectNone() { for (const f of S.files) { if (isFileVisible(f)) S.selected.delete(f.path); } render(); }
+function invertSelection() { for (const f of S.files) { if (!isFileVisible(f)) continue; S.selected.has(f.path)?S.selected.delete(f.path):S.selected.add(f.path); } render(); }
+
+function resetAll() {
+  S.files=[]; S.tree=null; S.selected.clear(); S.expanded.clear();
+  S.extFilter.clear(); S.previewPath=null; S.search=''; S.folderName='';
+  render();
+}
+
+// ── Generate ───────────────────────────────────────────────────────────────
+
+function getOutputName(files) {
+  // Single file → use its name (without extension)
+  if (files.length === 1) {
+    const name = files[0].name;
+    const dot = name.lastIndexOf('.');
+    return (dot > 0 ? name.slice(0, dot) : name) + '_consolidated';
+  }
+
+  // Check if all selected files share a common top-level subdirectory
+  const topDirs = new Set(files.map(f => {
+    const slash = f.path.indexOf('/');
+    return slash > 0 ? f.path.slice(0, slash) : null;
+  }));
+
+  // All files live under one subdirectory → use that name
+  if (topDirs.size === 1 && !topDirs.has(null)) {
+    return [...topDirs][0] + '_consolidated';
+  }
+
+  // Fallback → uploaded folder name
+  return (S.folderName || 'project') + '_consolidated';
+}
+
+function generate() {
+  const files = getSelected();
+  if (files.length === 0) return;
+
+  const output = S.format === 'xml' ? generateXML(files) : generateMarkdown(files);
+  const ext = S.format === 'xml' ? '.xml' : '.md';
+  const filename = getOutputName(files) + ext;
+
+  const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+}
+
+function generateXML(files) {
+  let out = '<project>\n';
+
+  if (S.includeTree) {
+    out += '<structure>\n' + buildTreeString(files) + '\n</structure>\n\n';
+  }
+
+  if (S.includeIndex) {
+    out += '<index>\n';
+    for (const f of files) {
+      const lang = getLang(f.name);
+      out += `  <entry path="${f.path}" language="${lang}" size="${fmtSize(f.size)}" />\n`;
+    }
+    out += '</index>\n\n';
+  }
+
+  for (const f of files) {
+    const lang = getLang(f.name);
+    out += `<file path="${f.path}"${lang ? ` language="${lang}"` : ''}>\n`;
+    out += f.content.trim();
+    out += '\n</file>\n\n';
+  }
+
+  out += '</project>\n';
+  return out;
+}
+
+function generateMarkdown(files) {
+  let out = '';
+
+  if (S.includeTree) {
+    out += '# Project Structure\n\n```\n' + buildTreeString(files) + '\n```\n\n---\n\n';
+  }
+
+  if (S.includeIndex) {
+    const totalSize = files.reduce((s,f) => s + f.size, 0);
+    out += `# File Index\n\n_${files.length} files · ${fmtSize(totalSize)}_\n\n`;
+    for (const f of files) {
+      out += `- \`${f.path}\`\n`;
+    }
+    out += '\n---\n\n';
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const lang = getLang(f.name);
+    out += `## \`${f.path}\`\n\n`;
+    out += '```' + lang + '\n';
+    out += f.content.trim();
+    out += '\n```\n';
+    if (i < files.length - 1) out += '\n---\n\n';
+  }
+  return out;
+}
+
+// ── Drag & Drop ────────────────────────────────────────────────────────────
+
+function setupDropZone() {
+  const zone = document.getElementById('dropZone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', async e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const items = e.dataTransfer.items;
+    if (!items) return;
+
+    const allFiles = [];
+    const entries = [];
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+    }
+
+    if (entries.length > 0) {
+      async function readEntry(entry, path) {
+        if (entry.isFile) {
+          return new Promise(resolve => {
+            entry.file(f => {
+              Object.defineProperty(f, 'webkitRelativePath', { value: path + f.name });
+              allFiles.push(f);
+              resolve();
+            }, resolve);
+          });
+        } else if (entry.isDirectory) {
+          const reader = entry.createReader();
+          const subEntries = await new Promise(resolve => {
+            const results = [];
+            function read() {
+              reader.readEntries(entries => {
+                if (entries.length === 0) resolve(results);
+                else { results.push(...entries); read(); }
+              }, () => resolve(results));
+            }
+            read();
+          });
+          for (const sub of subEntries) await readEntry(sub, path + entry.name + '/');
+        }
+      }
+      for (const entry of entries) await readEntry(entry, '');
+      if (allFiles.length > 0) readFiles(allFiles);
+    }
+  });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+document.getElementById('folderInput').addEventListener('change', e => {
+  if (e.target.files.length > 0) readFiles(e.target.files);
+});
+
+render();
+</script>
+</body>
+</html>
